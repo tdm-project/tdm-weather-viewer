@@ -223,6 +223,15 @@ function initBaseMap() {
 
 	map.setView([40, 9], 7);
 
+	map.on('click', (e) => {
+		for(let i in map._layers) {
+			const l = map._layers[i];
+	        if(l.addEvent) {
+				l.emit('click', e);
+			}	
+		}
+	});
+
 	map.on('overlayadd', function (e) {
 		l = layerControl.getOverlayByName(radar_layer_name);
 		switch (e.name) {
@@ -330,7 +339,7 @@ async function setupTcloudLayer(tcloud_url) {
 		if (tcloud_url) {
 			const tcloud_info = await getGeoTiff(tcloud_url);
 			if (tcloud_info) {
-				tcloudLayer = new TDMBasicGeotiffLayer("TDM_TCLOUD", {
+				const tcloudLayer = new TDMBasicGeotiffLayer("TDM_TCLOUD", {
 					width: tcloud_info.width,
 					height: tcloud_info.height,
 					geobounds: tcloud_info.bounds,
@@ -341,6 +350,11 @@ async function setupTcloudLayer(tcloud_url) {
 					max_value: tcloud_max
 				});
 				layerControl.addOverlay(tcloudLayer, tcloud_layer_name);
+				tcloudLayer.addEvent('click', (e) => {
+					const x = e.containerPoint.x;
+					const y = e.containerPoint.y;
+					console.log("CLICK TDM CLOUD!" , x, y);
+				});
 				if (tcloud_is_active) {
 					tcloudLayer.addTo(map);
 					tcloudLayer._canvas.style.zIndex = tcloud_layer_zindex;
@@ -373,7 +387,7 @@ async function setupTprecLayer(tprec_url) {
 		if (tprec_url) {
 			const tprec_info = await getGeoTiff(tprec_url);
 			if (tprec_info) {
-				tprecLayer = new TDMBasicGeotiffLayer("TDM_TPREC", {
+				const tprecLayer = new TDMBasicGeotiffLayer("TDM_TPREC", {
 					width: tprec_info.width,
 					height: tprec_info.height,
 					geobounds: tprec_info.bounds,
@@ -416,7 +430,7 @@ async function setupRadarLayer(radar_url) {
 		if (radar_url) {
 			const radar_info = await getGeoTiff(radar_url);
 			if (radar_info) {
-				radarLayer = new TDMBasicGeotiffLayer("TDM_RADAR", {
+				const radarLayer = new TDMBasicGeotiffLayer("TDM_RADAR", {
 					width: radar_info.width,
 					height: radar_info.height,
 					geobounds: radar_info.bounds,
