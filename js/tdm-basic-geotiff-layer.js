@@ -22,9 +22,8 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		min_value: 0.0,
 		max_value: 1.0,
 		opacity: 1.0,
-		webgl_debug: false,
+		webgl_debug: false
 	},
-
 	_gl: null,
 	_buffer_info: null,
 	_texture: null,
@@ -32,7 +31,9 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 	_uniforms: {
 		u_matrix: null,
 		u_rgba: null,
-		u_palette: null
+		u_palette: null,
+		u_lens_pass: true,
+		u_lens_info: null
 	},
 	_shaders_prg: null,
 	_vs: `
@@ -52,17 +53,24 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 	 precision mediump float;
 	 
 	 varying vec2 v_texCoord;
-	 
+
+	uniform bool u_lens_pass;
+    uniform vec4 u_lens_info; // [PosX, PosY, Radius, Alpha]
+
 	 uniform sampler2D u_rgba;
 	 uniform sampler2D u_palette;
 
 	 void main(void) {
-             float v = texture2D(u_rgba, v_texCoord).a;
-             gl_FragColor = texture2D(u_palette, vec2(v, 0.5));
+            float v = texture2D(u_rgba, v_texCoord).a;
+			if(u_lens_pass) {
+			  float pixelDist = distance(u_lens_info.xy, gl_FragCoord.xy);
+			  if(pixelDist < u_lens_info.z) discard;
+			// 	else fragmentAlpha = u_lens_info[3];
+			}
+			gl_FragColor = texture2D(u_palette, vec2(v, 0.5));
   	 }`,
 
 	addEvent: function (name, callback) {
-		console.log("ADD EVENT ", name);
 		if (!this._signals[name]) {
 			this._signals[name] = [];
 		}
@@ -71,7 +79,6 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 
 	emit: function (name, data) {
 		if (this._signals[name]) {
-			console.log("EMIT ", name, this._signals);
 			for (let c of this._signals[name])
 				c(data);
 		}
@@ -194,7 +201,6 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		}, function () {
 			this._uniforms.u_rgba = this._texture;
 		});
-
 	},
 
 	_gl_destroy_rendering_objects: function () {
@@ -232,7 +238,10 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		this._uniforms.u_matrix = mapMatrix;
 		this._uniforms.u_rgba = this._texture;
 		this._uniforms.u_palette = this._texture_palette;
-
+		//this._uniforms.u_lens_pass = this.lens_pass;
+		this._uniforms.u_lens_info = this.lens_v;
+		// console.log('GL ', this._uniforms.u_lens_pass);
+		// console.log('GL ', this._uniforms.u_lens_info);
 		this._gl.useProgram(this._shaders_prg.program);
 
 		twgl.setBuffersAndAttributes(this._gl, this._shaders_prg, this._buffer_info);
@@ -241,9 +250,15 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		twgl.drawBufferInfo(this._gl, this._gl.TRIANGLES, this._buffer_info);
 	},
 
-	initialize: function (name, options) {
+	initialize: function (name, options, lens_pass = false, lens_v = null) {
 		this.name = name;
 		this._signals = {};
+		this.len_pass = lens_pass;
+		this.lens_v = [0, 0, 0, 1.0];
+		if (lens_v)
+			this.lens_v = lens_v;
+		console.log(this.len_pass);
+		console.log(this.lens_v);
 		L.setOptions(this, options);
 	},
 

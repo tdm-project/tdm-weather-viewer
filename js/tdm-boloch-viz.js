@@ -83,7 +83,10 @@ async function getGeoTiff(url) {
 	return tiffInfo;
 }
 
-
+function median(value, min, max) {
+	const tmp = Math.min(value, max);
+	return Math.max(tmp, min);
+}
 
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
@@ -91,6 +94,8 @@ async function getGeoTiff(url) {
 //
 // GLOBAL VARIABLES
 
+const initLat = 40;
+const initLng = 9;
 let mapStuff = null;
 let timestep_description = [];
 let current_idx = -1;
@@ -102,7 +107,27 @@ const wind_layer_name = '10m Wind';
 const wind_layer_zindex = 450;
 
 const tcloud_layer_name = 'Total Cloud';
+let tcloudLayer = null;
 const tcloud_layer_zindex = 420;
+const tcloud_lens_min_radius = 20;
+const tcloud_lens_init_radius = 90;
+const tcloud_lens_max_radius = 180;
+const tcloud_lens_alpha = 1.0;
+const tcloud_lens_delta = 1.05;
+const tcloud_lens_pass = true;
+// const tcloud_lens_info = {
+// 	'lat': initLat,
+// 	'lng': initLng,
+// 	'x': null,
+// 	'y': null,
+// 	'r': tcloud_lens_init_radius,
+// 	'alpha': 1.0,
+// 	'enable': true
+// };
+const tcloud_lens_v = [0, 0, 0, 1.0];
+
+let tcloud_lens_drag_status = false;
+let tcloud_lens_marker = null;
 
 const tprec_layer_name = 'Total Prec';
 const tprec_layer_zindex = 430;
@@ -191,6 +216,19 @@ const radar_scale = chroma.scale(['rgba(30,60,255,0.0)',
 const radar_opacity = 0.6;
 
 
+function dispatchEvent(names, map) {
+	for (let n in names) {
+		map.on(names[n], (e) => {
+			for (let i in map._layers) {
+				const l = map._layers[i];
+				if (l.addEvent) {
+					l.emit(names[n], e);
+				}
+			}
+		});
+	}
+}
+
 
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
@@ -221,16 +259,66 @@ function initBaseMap() {
 	);
 	layerControl.addTo(map);
 
-	map.setView([40, 9], 7);
+	map.setView([initLat, initLng], 7);
 
-	map.on('click', (e) => {
-		for(let i in map._layers) {
-			const l = map._layers[i];
-	        if(l.addEvent) {
-				l.emit('click', e);
-			}	
-		}
-	});
+	//dispatchEvent(['drag', 'dragstart', 'dragend', 'mousedown', 'mouseup', 'mousemove'], map);
+
+	if (tcloud_lens_pass) {
+		map.createPane("lensMarker");
+		map.getPane("lensMarker").style.zIndex = 5000;
+		//Lens start point
+		const start_point = map.latLngToLayerPoint([initLat, initLng]);
+		tcloud_lens_v[0] = start_point.x;
+		tcloud_lens_v[1] = start_point.y;
+		tcloud_lens_v[2] = tcloud_lens_init_radius;
+		tcloud_lens_v[3] = tcloud_lens_alpha;
+		///
+		tcloud_lens_marker = L.circleMarker([initLat, initLng],
+			{ pane: 'lensMarker', radius: tcloud_lens_init_radius, color: '#ff0000', draggable: true, fillOpacity: 0 })
+			.addTo(map);
+		tcloud_lens_marker.on('mousedown', () => {
+			map.dragging.disable();
+			map.on('mousemove', (e) => {
+				tcloud_lens_marker.setLatLng(e.latlng);
+				const point = map.latLngToContainerPoint(e.latlng);
+				const size = map.getSize();
+				tcloud_lens_v[0] = point.x;
+				tcloud_lens_v[1] = (size.y - 1) - point.y;
+				if (tcloudLayer) tcloudLayer._gl_render();
+				//console.log(tcloud_lens_v);
+			});
+		});
+		tcloud_lens_marker.on('mouseover', (e) => {
+			map.scrollWheelZoom.disable();
+		});
+		tcloud_lens_marker.on('mouseout', (e) => {
+			map.scrollWheelZoom.enable();
+		});
+
+		map.on('moveend', (e) => {
+			console.log("MAP MOVED");
+			const point = map.latLngToContainerPoint(tcloud_lens_marker.getLatLng());
+			console.log(point);
+			const size = map.getSize();
+			tcloud_lens_v[0] = point.x;
+			tcloud_lens_v[1] = (size.y - 1) - point.y;
+			if (tcloudLayer) tcloudLayer._gl_render();
+		});
+
+		L.DomEvent.on(map.getContainer(), 'mousewheel', (e) => {
+			let r = (e.deltaY > 0) ? tcloud_lens_v[2] * tcloud_lens_delta : tcloud_lens_v[2] / tcloud_lens_delta;
+			r = median(r, tcloud_lens_min_radius, tcloud_lens_max_radius);
+			tcloud_lens_v[2] = r;
+			tcloud_lens_marker.setRadius(r);
+			if (tcloudLayer) tcloudLayer._gl_render();
+		});
+
+		tcloud_lens_marker.on('mouseup', () => {
+			map.removeEventListener('mousemove');
+			map.dragging.enable();
+		});
+	}
+
 
 	map.on('overlayadd', function (e) {
 		l = layerControl.getOverlayByName(radar_layer_name);
@@ -339,7 +427,7 @@ async function setupTcloudLayer(tcloud_url) {
 		if (tcloud_url) {
 			const tcloud_info = await getGeoTiff(tcloud_url);
 			if (tcloud_info) {
-				const tcloudLayer = new TDMBasicGeotiffLayer("TDM_TCLOUD", {
+				tcloudLayer = new TDMBasicGeotiffLayer("TDM_TCLOUD", {
 					width: tcloud_info.width,
 					height: tcloud_info.height,
 					geobounds: tcloud_info.bounds,
@@ -347,16 +435,65 @@ async function setupTcloudLayer(tcloud_url) {
 					colorscale: tcloud_scale,
 					opacity: tcloud_opacity,
 					min_value: tcloud_min,
-					max_value: tcloud_max
-				});
+					max_value: tcloud_max,
+				}, tcloud_lens_pass, tcloud_lens_v);
 				layerControl.addOverlay(tcloudLayer, tcloud_layer_name);
-				tcloudLayer.addEvent('click', (e) => {
-					const x = e.containerPoint.x;
-					const y = e.containerPoint.y;
-					console.log("CLICK TDM CLOUD!" , x, y);
-				});
+				console.log('TCLOUD CREATED WITH ', tcloud_lens_v);
+
+				// tcloudLayer.addEvent('mousedown', (e) => {
+				// 	if (tcloud_lens_info.enable) {
+				// 		console.log(e);
+				// 		const old_lat = tcloud_lens_info.lat;
+				// 		const old_lng = tcloud_lens_info.lng;
+				// 		const old_point = map.latLngToLayerPoint([old_lat, old_lng]);
+				// 		const old_x = old_point.x;
+				// 		const old_y = old_point.y;
+				// 		const x = e.originalEvent.x;
+				// 		const y = e.originalEvent.y;
+				// 		const latlong = map.layerPointToLatLng([x, y]);
+				// 		const d2 = (x - old_x) * (x - old_x) + (y - old_y) * (y - old_y);
+				// 		console.log(d2);
+				// 		if (d2 < tcloud_lens_info.r * tcloud_lens_info.r) {
+				// 			tcloud_lens_drag_status = true;
+				// 			tcloud_lens_info.lat = latlong.lat;
+				// 			tcloud_lens_info.lng = latlong.lng;
+				// 			console.log("DRAG START TDM CLOUD IN ", x, y, latlong);
+				// 			e.originalEvent.preventDefault();
+				// 		} else {
+				// 			console.log("DRAG START TDM CLOUD OUT ");
+				// 		}
+
+				// 	}
+				// });
+
+				// tcloudLayer.addEvent('mousemove', (e) => {
+				// 	if (tcloud_lens_info.enable && tcloud_lens_drag_status) {
+				// 		console.log(e);
+				// 		const old_lat = tcloud_lens_info.lat;
+				// 		const old_lng = tcloud_lens_info.lng;
+				// 		const old_point = map.latLngToLayerPoint([old_lat, old_lng]);
+				// 		const old_x = old_point.x;
+				// 		const old_y = old_point.y;
+				// 		const x = e.originalEvent.x;
+				// 		const y = e.originalEvent.y;
+				// 		const latlong = map.layerPointToLatLng([x, y]);
+				// 		const d2 = (x - old_x) * (x - old_x) + (y - old_y) * (y - old_y);
+				// 		tcloud_lens_info.lat = latlong.lat;
+				// 		tcloud_lens_info.lng = latlong.lng;
+				// 		console.log("DRAG TDM CLOUD IN ", x, y, latlong);
+				// 		console.log(d2);
+				// 		e.originalEvent.preventDefault();
+				// 	}
+				// });
+
+				// tcloudLayer.addEvent('mouseup', (e) => {
+				// 	console.log("DRAG STOP TDM CLOUD");
+				// 	tcloud_lens_drag_status = false;
+				// });
+
 				if (tcloud_is_active) {
 					tcloudLayer.addTo(map);
+					console.log(map);
 					tcloudLayer._canvas.style.zIndex = tcloud_layer_zindex;
 				}
 				resolve("OK");
