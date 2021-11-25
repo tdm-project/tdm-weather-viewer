@@ -1,5 +1,5 @@
 body {
-    margin: 0px;
+    margin: 0;
 }
 
 #heading {
@@ -22,14 +22,45 @@ a {
     background-color: rgba(80, 80, 80, 0.0);
 }
 
-.overlay {     
+.lens_container {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    z-index: 9999;
+    top: 80px;
+    left: 10px;
+    width: 70px;
+    height: 25px;
+    background-color: rgba(80, 80, 80, 0.7);
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.lens_container label {
+    padding-left: 8px;
+}
+
+.info {
     position: absolute;
     z-index: 9998;
-    font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+    width: 280px;
+    left: 0;
+    bottom: 80px;
+    padding: 4px 8px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.7);
+    text-align: left;
+}
+
+.overlay {
+    position: absolute;
+    z-index: 9998;
+    font: 12px / 1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
     font-weight: bold;
     width: 280px;
     /* top: 0px; */
-    left: 0px;
+    left: 0;
     /* bottom: 16px; */
     bottom: 20px;
     padding: 4px 8px;
@@ -39,59 +70,59 @@ a {
 }
 
 #select_date {
-    font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font: 12px / 1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
 }
 
 .time-btn-left-rw {
-    background:url(../img/btn-left-rw.png) no-repeat;
-    cursor:pointer;
+    background: url('../img/btn-left-rw.png') no-repeat;
+    cursor: pointer;
     border: none;
     width: 40px;
     height: 25px;
-    margin: 0px 4px 0px 0px;
+    margin: 0 4px 0 0;
 }
 
 .time-btn-left-rw:hover {
-    background:url(../img/btn-left-rw-a.png) no-repeat;
+    background: url('../img/btn-left-rw-a.png') no-repeat;
 }
 
 .time-btn-left {
-    background:url(../img/btn-left.png) no-repeat;
-    cursor:pointer;
+    background: url('../img/btn-left.png') no-repeat;
+    cursor: pointer;
     border: none;
     width: 25px;
     height: 25px;
-    margin: 0px 4px 0px 0px;
+    margin: 0 4px 0 0;
 }
 
 .time-btn-left:hover {
-    background:url(../img/btn-left-a.png) no-repeat;
+    background: url('../img/btn-left-a.png') no-repeat;
 }
 
 .time-btn-right-fw {
-    background:url(../img/btn-right-fw.png) no-repeat;
-    cursor:pointer;
+    background: url('../img/btn-right-fw.png') no-repeat;
+    cursor: pointer;
     border: none;
     width: 40px;
     height: 25px;
-    margin: 0px 0px 0px 4px;
+    margin: 0 0 0 4px;
 }
 
 .time-btn-right-fw:hover {
-    background:url(../img/btn-right-fw-a.png) no-repeat;
+    background: url('../img/btn-right-fw-a.png') no-repeat;
 }
 
 .time-btn-right {
-    background:url(../img/btn-right.png) no-repeat;
-    cursor:pointer;
+    background: url('../img/btn-right.png') no-repeat;
+    cursor: pointer;
     border: none;
     width: 25px;
     height: 25px;
-    margin: 0px 0px 0px 4px;
+    margin: 0 0 0 4px;
 }
 
 .time-btn-right:hover {
-    background:url(../img/btn-right-a.png) no-repeat;
+    background: url('../img/btn-right-a.png') no-repeat;
 }
 
 #map {
@@ -106,32 +137,32 @@ a {
     opacity: 0.55;
 }
 
-.info {
+/* .info {
     padding: 6px 8px;
-    font: 14px/16px Arial, Helvetica, sans-serif;
-    background: rgba(255,255,255,0.8);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    font: 14px / 16px Arial, Helvetica, sans-serif;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     border-radius: 5px;
 }
 
 .info h4 {
     margin: 0 0 5px;
     color: #777;
-}
+} */
 
 .metric-legend {
     width: 600px;
     background-color: #7c7c7c;
     white-space: nowrap;
-    font-family: Arial,Helvetica,sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     color: #000;
     font-weight: normal;
     font-variant: normal;
     font-size: 12px;
-    box-shadow: 1px 1px 1px rgba(0,0,0,0.63);
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.63);
     border-radius: 20px;
     overflow: hidden;
-    margin: 0px 2px 4px 0px!important;
+    margin: 0 2px 4px 0 !important;
 }
 
 .metric-legend span {
@@ -142,7 +173,6 @@ a {
     margin: 0;
 }
 
-.metric-legend span:not(:first-child) {
-    /*border-left: 2px solid #000;*/
-}
-
+/* .metric-legend span:not(:first-child) {
+    border-left: 2px solid #000;
+} */

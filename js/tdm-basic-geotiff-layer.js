@@ -24,6 +24,21 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		opacity: 1.0,
 		webgl_debug: false
 	},
+
+	include: {
+		lens_pass: false,
+		lens_v: [0, 0, 0, 1],
+		ganppo: 12345
+	},
+
+	initialize: function (name, options, lens_pass = false, lens_v = [0, 0, 0, 1]) {
+		this.name = name;
+		this._signals = {};
+		this.lens_pass = lens_pass;
+		this.lens_v = lens_v;
+		L.setOptions(this, options);
+	},
+
 	_gl: null,
 	_buffer_info: null,
 	_texture: null,
@@ -69,6 +84,11 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 			}
 			gl_FragColor = texture2D(u_palette, vec2(v, 0.5));
   	 }`,
+
+
+	setLensPass: function (b) {
+		this.lens_pass = b;
+	},
 
 	addEvent: function (name, callback) {
 		if (!this._signals[name]) {
@@ -238,28 +258,14 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 		this._uniforms.u_matrix = mapMatrix;
 		this._uniforms.u_rgba = this._texture;
 		this._uniforms.u_palette = this._texture_palette;
-		//this._uniforms.u_lens_pass = this.lens_pass;
+		this._uniforms.u_lens_pass = this.lens_pass;
 		this._uniforms.u_lens_info = this.lens_v;
-		// console.log('GL ', this._uniforms.u_lens_pass);
-		// console.log('GL ', this._uniforms.u_lens_info);
 		this._gl.useProgram(this._shaders_prg.program);
 
 		twgl.setBuffersAndAttributes(this._gl, this._shaders_prg, this._buffer_info);
 		twgl.setUniforms(this._shaders_prg, this._uniforms);
 
 		twgl.drawBufferInfo(this._gl, this._gl.TRIANGLES, this._buffer_info);
-	},
-
-	initialize: function (name, options, lens_pass = false, lens_v = null) {
-		this.name = name;
-		this._signals = {};
-		this.len_pass = lens_pass;
-		this.lens_v = [0, 0, 0, 1.0];
-		if (lens_v)
-			this.lens_v = lens_v;
-		console.log(this.len_pass);
-		console.log(this.lens_v);
-		L.setOptions(this, options);
 	},
 
 	onLayerDidMount: function () {
