@@ -88,6 +88,15 @@ function median(value, min, max) {
 	return Math.max(tmp, min);
 }
 
+function dispatchEvent(names, map) {
+	for (let n in names)
+		for (let i in map._layers) {
+			const l = map._layers[i];
+			if (l.emit)
+				l.emit(names[n]);
+		}
+}
+
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
@@ -205,19 +214,6 @@ const radar_scale = chroma.scale(['rgba(30,60,255,0.0)',
 	'rgba(230,175,45,1.0)',
 	'rgba(240,130,40,1.0)']).domain(radar_domain);
 const radar_opacity = 0.6;
-
-
-function dispatchEvent(names, map) {
-	for (let n in names) {
-		for (let i in map._layers) {
-			const l = map._layers[i];
-			if (l.addEvent) {
-				l.emit(names[n]);
-			}
-		}
-	}
-}
-
 
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
