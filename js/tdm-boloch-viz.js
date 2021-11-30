@@ -97,6 +97,14 @@ function dispatchEvent(names, map) {
 		}
 }
 
+function calcRadius(val, zoom) {
+	return 1.0083 * Math.pow(val, 0.5716) * (zoom / 2);
+}
+
+function metresPerPixel(map) {
+	return 40075016.686 * Math.abs(Math.cos(map.getCenter().lat * Math.PI / 180)) / Math.pow(2, map.getZoom() + 8);
+}
+
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
@@ -124,7 +132,7 @@ const tcloud_lens_max_radius = 180;
 const tcloud_lens_alpha = 1.0;
 const tcloud_lens_delta = 1.05;
 
-
+let prev_zoom = 0;
 let lens_pass = false;
 const lens_v = [0, 0, 0, 1.0];
 let lens_marker = null;
@@ -230,7 +238,8 @@ function initBaseMap() {
 
 	let map = L.map('map', {
 		layers: [Esri_WorldImagery],
-		zoomControl: true
+		zoomControl: true,
+		enableHighAccuracy: true
 	});
 
 	let layerControl = L.control.layers(
@@ -245,7 +254,7 @@ function initBaseMap() {
 	layerControl.addTo(map);
 
 	map.setView([initLat, initLng], 7);
-
+	prev_zoom = map.getZoom();
 	//dispatchEvent(['drag', 'dragstart', 'dragend', 'mousedown', 'mouseup', 'mousemove'], map);
 
 	map.createPane("lensMarker");
@@ -258,13 +267,13 @@ function initBaseMap() {
 	lens_v[3] = tcloud_lens_alpha;
 	///
 	lens_marker = L.circleMarker([initLat, initLng],
-		{ pane: 'lensMarker', radius: tcloud_lens_init_radius, color: '#ff0000', draggable: true, fillOpacity: 0 });
+		{ pane: 'lensMarker', radius: tcloud_lens_init_radius, color: '#ff0000', draggable: true, fillOpacity: 0, weight: 6 });
 
 	lens_marker.on('mousedown', () => {
 		map.dragging.disable();
 		map.on('mousemove', (e) => {
 			lens_marker.setLatLng(e.latlng);
-			const point = map.latLngToContainerPoint(e.latlng);
+			const point = map.latLngToContainerPoint(lens_marker.getLatLng());
 			const size = map.getSize();
 			lens_v[0] = point.x;
 			lens_v[1] = (size.y - 1) - point.y;
@@ -286,9 +295,30 @@ function initBaseMap() {
 		dispatchEvent(['update'], map);
 	});
 
+	map.on('zoomend', (e) => {
+		const r = lens_marker.getRadius();
+		const z = map.getZoom();
+		const nr = r*Math.pow(2, (z-prev_zoom));
+		prev_zoom = z;
+		lens_marker.setRadius(nr);
+		console.log(r, z, nr);
+		const point = map.latLngToContainerPoint(lens_marker.getLatLng());
+		const size = map.getSize();
+		lens_v[0] = point.x;
+		lens_v[1] = (size.y - 1) - point.y;
+
+		lens_v[2] = lens_marker.getRadius();
+		dispatchEvent(['update'], map);
+	});
+
 	L.DomEvent.on(map.getContainer(), 'mousewheel', (e) => {
+		const point = map.latLngToContainerPoint(lens_marker.getLatLng());
+		const size = map.getSize();
+		lens_v[0] = point.x;
+		lens_v[1] = (size.y - 1) - point.y;
+
 		let r = (e.deltaY > 0) ? lens_v[2] * tcloud_lens_delta : lens_v[2] / tcloud_lens_delta;
-		r = median(r, tcloud_lens_min_radius, tcloud_lens_max_radius);
+		//r = median(r, tcloud_lens_min_radius, tcloud_lens_max_radius);
 		lens_v[2] = r;
 		lens_marker.setRadius(r);
 		dispatchEvent(['update'], map);
