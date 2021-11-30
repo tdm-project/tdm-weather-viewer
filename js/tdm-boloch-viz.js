@@ -566,8 +566,14 @@ async function setupRadarLayer(radar_url) {
 					opacity: radar_opacity,
 					min_value: radar_min,
 					max_value: radar_max
-				});
+				}, lens_pass, lens_v);
 				layerControl.addOverlay(radarLayer, radar_layer_name);
+
+				radarLayer.addEvent('update', () => {
+					radarLayer.setLensPass(lens_pass);
+					radarLayer.needRedraw();
+				});
+
 				if (radar_is_active) {
 					radarLayer.addTo(map);
 					radarLayer._canvas.style.zIndex = radar_layer_zindex;
