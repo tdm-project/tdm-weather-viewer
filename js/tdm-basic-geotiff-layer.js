@@ -77,12 +77,15 @@ let TDMBasicGeotiffLayer = L.TDMCanvasLayer.extend({
 
 	 void main(void) {
             float v = texture2D(u_rgba, v_texCoord).a;
+			vec4 finalColor = texture2D(u_palette, vec2(v, 0.5));
 			if(u_lens_pass) {
 			  float pixelDist = distance(u_lens_info.xy, gl_FragCoord.xy);
-			  if(pixelDist < u_lens_info.z) discard;
+			  if(pixelDist < u_lens_info.z) {
+				  finalColor.a *= u_lens_info.a;
+			  };
 			// 	else fragmentAlpha = u_lens_info[3];
 			}
-			gl_FragColor = texture2D(u_palette, vec2(v, 0.5));
+			gl_FragColor = finalColor;
   	 }`,
 
 

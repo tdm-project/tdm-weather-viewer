@@ -24,6 +24,7 @@ a {
 
 .lens_container {
     display: flex;
+    gap: 5px;
     align-items: center;
     position: absolute;
     z-index: 9999;
