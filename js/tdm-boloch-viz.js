@@ -63,7 +63,6 @@ async function getGeoTiff(url) {
 	const response = await fetch(url);
 	const arrayBuffer = await response.arrayBuffer();
 	const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
-	//const tiff = await GeoTIFF.fromUrl(url);
 	let image = await tiff.getImage();
 	let rasters = await image.readRasters();
 
@@ -148,14 +147,19 @@ let lens_marker = null;
 const tprec_layer_name = 'Total Prec';
 const tprec_layer_zindex = 430;
 
+const temp_layer_name = 'Temperature';
+const temp_layer_zindex = 430;
+
 const radar_layer_name = 'Radar';
 const radar_layer_zindex = 440;
 
 const layer_order = [base_satellite_name,
 	tcloud_layer_name,
 	tprec_layer_name,
+	temp_layer_name,
 	wind_layer_name,
 	radar_layer_name];
+
 
 function compare_layers(A, B, nameA, nameB) {
 	let indexA = layer_order.indexOf(nameA);
@@ -192,20 +196,6 @@ const tcloud_opacity = 0.6;
 let tprecLegend = null;
 const tprec_min = 0;
 const tprec_max = 6.4;
-// const tprec_scale = chroma.scale(['rgba(59,123,161,0.0)', //  0mm
-//     				  'rgba(59,138,161,0.9)', //  2.5mm
-//     				  'rgba(58,153,160,1.0)', //  5mm
-//     				  'rgba(92,157,109,1.0)', //  7.5mm
-//     				  'rgba(127,161,58,1.0)', // 10mm
-//     				  'rgba(144,157,58,1.0)', // 12.5mm
-//     				  'rgba(161,153,59,1.0)', // 15mm
-//     				  'rgba(161,106,60,1.0)', // 17.5mm
-//     				  'rgba(161,59,61,1.0)',  // 20mm
-//     				  'rgba(166,57,84,1.0)',  // 22.5mm
-//     				  'rgba(170,54,108,1.0)', // 25mm
-//     				  'rgba(166,55,132,1.0)', // 27.5mm
-//     				  'rgba(164,57,159,1.0)'  // 30mm
-//     				 ]).domain([tprec_min, tprec_max]);
 const tprec_domain = [0, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4];
 const tprec_scale = chroma.scale(['rgba(30,60,255,0.0)',
 	'rgba(160,255,255,1.0)',
@@ -216,6 +206,20 @@ const tprec_scale = chroma.scale(['rgba(30,60,255,0.0)',
 	'rgba(230,175,45,1.0)',
 	'rgba(240,130,40,1.0)']).domain(tprec_domain);
 const tprec_opacity = 0.6;
+
+let tempLegend = null;
+const temp_min = -20;
+const temp_max = 40;
+const temp_domain = [-20, -10, 0.0, 10.0, 20.0, 30.0, 40.0];
+const temp_scale = chroma.scale(['#9589d3ff',
+	'#7ec9c4ff',
+	'#5e90c5ff',
+	'#78921c80',
+	'#dcb00680',
+	'#ec5f14ff',
+	'#8a2a0aff']).domain(temp_domain);
+
+const temp_opacity = 0.9;
 
 let radarLegend = null;
 const radar_min = 0;
@@ -262,6 +266,7 @@ function initBaseMap() {
 	layerControl.addTo(map);
 
 	map.setView([initLat, initLng], 7);
+
 	prev_zoom = map.getZoom();
 	//dispatchEvent(['drag', 'dragstart', 'dragend', 'mousedown', 'mouseup', 'mousemove'], map);
 
@@ -290,6 +295,7 @@ function initBaseMap() {
 			dispatchEvent(['update'], map);
 		});
 	});
+
 	lens_marker.on('mouseover', (e) => {
 		map.scrollWheelZoom.disable();
 	});
@@ -313,7 +319,7 @@ function initBaseMap() {
 		dispatchEvent(['update'], map);
 	});
 
-	L.DomEvent.on(map.getContainer(), 'mousewheel', (e) => {
+	L.DomEvent.on(map.getContainer(), 'wheel', (e) => {
 		setLensPosition(map, lens_marker.getLatLng());
 		let r = (e.deltaY > 0) ? lens_v[2] * lens_delta : lens_v[2] / lens_delta;
 		//r = median(r, lens_min_radius, lens_max_radius);
@@ -328,6 +334,7 @@ function initBaseMap() {
 	});
 
 	const checkbox = document.getElementById('lensEnable');
+	checkbox.checked = false;
 	const lensAlphaSlider = document.getElementById('lensAlpha');
 	lensAlphaSlider.disabled = true;
 	lensAlphaSlider.value = median(lens_init_alpha * 100, 0, 100);
@@ -363,6 +370,9 @@ function initBaseMap() {
 				break;
 			case tprec_layer_name:
 				e.layer._canvas.style.zIndex = tprec_layer_zindex;
+				break;
+			case temp_layer_name:
+				e.layer._canvas.style.zIndex = temp_layer_zindex;
 				break;
 			case radar_layer_name:
 				e.layer._canvas.style.zIndex = radar_layer_zindex;
@@ -539,6 +549,55 @@ async function setupTprecLayer(tprec_url) {
 	});
 }
 
+async function setupTempLayer(temp_url) {
+	let map = mapStuff.map;
+	let layerControl = mapStuff.layerControl;
+
+	let temp_is_active = layerControl.isActiveOverlayByName(temp_layer_name);
+	if (tempLegend) mapStuff.map.removeControl(tempLegend);
+	l = layerControl.getOverlayByName(temp_layer_name);
+	if (l) {
+		layerControl.removeLayer(l);
+		l.removeFrom(map);
+	} else {
+		temp_is_active = true;
+	}
+
+	return new Promise(async function (resolve, reject) {
+		if (temp_url) {
+			const temp_info = await getGeoTiff(temp_url);
+			if (temp_info) {
+				tempLayer = new TDMBasicGeotiffLayer("TDM_TEMP", {
+					width: temp_info.width,
+					height: temp_info.height,
+					geobounds: temp_info.bounds,
+					channels: temp_info.data,
+					colorscale: temp_scale,
+					opacity: temp_opacity,
+					min_value: temp_min,
+					max_value: temp_max
+				}, lens_pass, lens_v);
+				layerControl.addOverlay(tempLayer, temp_layer_name);
+
+				tempLayer.addEvent('update', () => {
+					tempLayer.setLensPass(lens_pass);
+					tempLayer.needRedraw();
+				});
+
+				if (temp_is_active) {
+					tempLayer.addTo(map);
+					tempLayer._canvas.style.zIndex = temp_layer_zindex;
+				}
+				resolve("OK");
+			} else {
+				reject(Error("CANNOT LOAD " + temp_url));
+			}
+		} else {
+			resolve("OK");
+		}
+	});
+}
+
 async function setupRadarLayer(radar_url) {
 	let map = mapStuff.map;
 	let layerControl = mapStuff.layerControl;
@@ -592,15 +651,14 @@ async function setupLayers() {
 	if (current_idx >= 0) {
 		let p1 = setupTcloudLayer(timestep_description[current_idx].tcloud_url);
 		let p2 = setupTprecLayer(timestep_description[current_idx].tprec_url);
-		let p3 = setupWindLayer(timestep_description[current_idx].wind_url);
-		let p4 = setupRadarLayer(timestep_description[current_idx].radar_url);
-		await Promise.all([p1, p2, p3, p4]);
+		let p3 = setupTempLayer(timestep_description[current_idx].temp_url);
+		let p4 = setupWindLayer(timestep_description[current_idx].wind_url);
+		let p5 = setupRadarLayer(timestep_description[current_idx].radar_url);
+		await Promise.all([p1, p2, p3, p4, p5]);
 	}
 }
 
-
 // Legends
-
 function createLegendDomain(map, domain, scale, descr) {
 	let legend = L.control({ position: 'bottomright' });
 	legend.onAdd = function (map) {
@@ -679,7 +737,6 @@ function createWindLegend() {
 	});
 }
 
-
 function createTprecLegend() {
 	let map = mapStuff.map;
 
@@ -694,6 +751,25 @@ function createTprecLegend() {
 	mapStuff.map.on('overlayremove', function (eventLayer) {
 		if (eventLayer.name === tprec_layer_name) {
 			mapStuff.map.removeControl(tprecLegend);
+		}
+	});
+
+}
+
+function createTempLegend() {
+	let map = mapStuff.map;
+
+	tempLegend = createLegendDomain(map, temp_domain, temp_scale, "T [°C]");
+
+	mapStuff.map.on('overlayadd', function (eventLayer) {
+		if (eventLayer.name === temp_layer_name) {
+			mapStuff.map.addControl(tempLegend);
+		}
+	});
+
+	mapStuff.map.on('overlayremove', function (eventLayer) {
+		if (eventLayer.name === temp_layer_name) {
+			mapStuff.map.removeControl(tempLegend);
 		}
 	});
 
@@ -716,7 +792,6 @@ function createRadarLegend() {
 		}
 	});
 }
-
 
 
 /////////////////////////////////////////////////////
@@ -813,29 +888,28 @@ function createTimeStepDescription(resources_forecast_json, resources_radar_json
 	let utc_to_cest = 2 * 60 * 60 * 1000;
 
 	forecast_resources.forEach(function (item) {
-		let fname = item.name;
+		let filekind = item.name;
 		let url = item.url;
-		let tmp_str = fname.split("_");
-		let filekind = tmp_str[4].split(".")[0];
-		let filekind_ext = tmp_str[4].split(".")[1];
+		let tmp_str = url.split("/");
+		let poi_str = tmp_str[tmp_str.length - 2];
+		let date_str = tmp_str[tmp_str.length - 3];
 
-		let date_str = tmp_str[1];
 		let YYYY = date_str.substr(0, 4);
-		let MM = date_str.substr(4, 2);
+		let MM = date_str.substr(5, 2);
 		let MDate = parseInt(MM) - 1;
-		let DD = date_str.substr(6, 2);
-		let start_hms = parseInt(date_str.substr(8, 2)) * 60 * 60 * 1000;
-		let date = new Date(YYYY, MDate, DD);
+		let DD = date_str.substr(8, 2);
+		let hh = date_str.substr(11, 2);
+		let mm = date_str.substr(14, 2);
 
-		let sim_Dms = parseInt(tmp_str[2].substr(0, 3)) * 24 * 60 * 60 * 1000;
-		let sim_hms = parseInt(tmp_str[2].substr(3, 2)) * 60 * 60 * 1000 + parseInt(tmp_str[2].substr(5, 2)) * 60 * 1000;
+		let ss = 0;
+		let date = new Date(YYYY, MDate, DD, hh, mm, ss);
+		date.setTime(date.getTime() + utc_to_cest);
 
-		date.setTime(date.getTime() + sim_Dms + start_hms + sim_hms + utc_to_cest);
 		YYYY = date.getFullYear();
 		MM = date.getMonth() + 1;
 		DD = date.getDate();
-		let hh = date.getHours();
-		let mm = date.getMinutes();
+		hh = date.getHours();
+		mm = date.getMinutes();
 		let epoch = date.getTime();
 		MMf = ("00" + MM).slice(-2);
 		DDf = ("00" + DD).slice(-2);
@@ -849,6 +923,7 @@ function createTimeStepDescription(resources_forecast_json, resources_radar_json
 				wind_url: null,
 				tcloud_url: null,
 				tprec_url: null,
+				temp_url: null,
 				radar_url: null
 			};
 			timestep_description.push(td);
@@ -856,14 +931,17 @@ function createTimeStepDescription(resources_forecast_json, resources_radar_json
 		};
 
 		switch (filekind) {
-			case "wind":
+			case "uv10":
 				timestep_description[idx].wind_url = url;
 				break;
-			case "tcloud":
+			case "tcov":
 				timestep_description[idx].tcloud_url = url;
 				break;
 			case "tprec":
 				timestep_description[idx].tprec_url = url;
+				break;
+			case "temp2m":
+				timestep_description[idx].temp_url = url;
 				break;
 			default:
 				console.log("ERROR: unknown kind " + fname);
@@ -872,37 +950,31 @@ function createTimeStepDescription(resources_forecast_json, resources_radar_json
 	});
 
 	let radar_resources = resources_radar_json.result.resources;
-
 	radar_resources.forEach(function (item) {
 		let fname = item.name;
 		let url = item.url;
-		//let is_lzw=(fname.substr(19,3)==="lzw");
-		let proj = fname.substr(14, 4);
-		if (proj === "4326") {
+		let YYYY = fname.substr(0, 4); let Y = parseInt(YYYY);
+		let MM = fname.substr(5, 2); let M = parseInt(MM) - 1;
+		let DD = fname.substr(8, 2); let D = parseInt(DD);
+		let hh = fname.substr(11, 2); let h = parseInt(hh);
+		let mm = "00"; let m = parseInt(mm);
+		let date = new Date(Y, M, D, h, m, 0, 0);
+		let epoch = date.getTime() + utc_to_cest;
 
-			let YYYY = fname.substr(0, 4); let Y = parseInt(YYYY);
-			let MM = fname.substr(5, 2); let M = parseInt(MM) - 1;
-			let DD = fname.substr(8, 2); let D = parseInt(DD);
-			let hh = fname.substr(11, 2); let h = parseInt(hh);
-			let mm = "00"; let m = parseInt(mm);
-			let date = new Date(Y, M, D, h, m, 0, 0);
-			let epoch = date.getTime() + utc_to_cest;
-
-			let idx = timestep_description.findIndex(x => x.epoch === epoch);
-			if (idx == -1) {
-				let td = {
-					epoch: epoch,
-					wind_url: null,
-					tcloud_url: null,
-					tprec_url: null,
-					radar_url: null
-				};
-				timestep_description.push(td);
-				idx = timestep_description.length - 1;
+		let idx = timestep_description.findIndex(x => x.epoch === epoch);
+		if (idx == -1) {
+			let td = {
+				epoch: epoch,
+				wind_url: null,
+				tcloud_url: null,
+				tprec_url: null,
+				temp_url: null,
+				radar_url: null
 			};
-
-			timestep_description[idx].radar_url = url;
-		}
+			timestep_description.push(td);
+			idx = timestep_description.length - 1;
+		};
+		timestep_description[idx].radar_url = url;
 	});
 
 	timestep_description.sort(function (a, b) {
@@ -918,7 +990,6 @@ function handling_select_container() {
 	let idx = document.getElementById("select_date").value;
 	gotoHour(parseInt(idx));
 }
-
 
 function generate_date_menu() {
 	let overlay_container = document.getElementById("time-overlay");
@@ -940,7 +1011,6 @@ function generate_date_menu() {
 	});
 }
 
-
 // Main
 async function main(resources_forecast_url, resources_radar_url) {
 	const resources_forecast_json = await loadResources(resources_forecast_url);
@@ -949,6 +1019,7 @@ async function main(resources_forecast_url, resources_radar_url) {
 	mapStuff = initBaseMap();
 	createWindLegend();
 	createTprecLegend();
+	createTempLegend();
 	createRadarLegend();
 	await setupLayers();
 	update_date_label();
@@ -956,6 +1027,6 @@ async function main(resources_forecast_url, resources_radar_url) {
 }
 
 window.onload = function () {
-	main("data/forecast-res-local.json",
-		"data/radar-res-local.json");
+	main('https://rest.tdm-project.it/tdm/odata/product/meteosim/bolam/2018110301/cf725252-d976-4342-a68b-465d577b7291-lonlat/description.json',
+		'http://rest.tdm-project.it/tdm/odata/product/radar/cag01est2400/2018-11-03/1h/description.json');
 };
