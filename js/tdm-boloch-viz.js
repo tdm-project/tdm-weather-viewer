@@ -1028,5 +1028,5 @@ async function main(resources_forecast_url, resources_radar_url) {
 
 window.onload = function () {
 	main('https://rest.tdm-project.it/tdm/odata/product/meteosim/bolam/2018110301/cf725252-d976-4342-a68b-465d577b7291-lonlat/description.json',
-		'http://rest.tdm-project.it/tdm/odata/product/radar/cag01est2400/2018-11-03/1h/description.json');
+		'https://rest.tdm-project.it/tdm/odata/product/radar/cag01est2400/2018-11-03/1h/description.json');
 };
