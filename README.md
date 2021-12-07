@@ -26,8 +26,13 @@ An interactive lens "perforates" the layers, allowing the user to have a more pr
 Using the code
 --------------
 
-See INSTALL file for installation instructions and individual class documentation for more info.
-Additional documentation is availabile in Deliverable D6.2 on the [TDM project deliverables](http://www.tdm-project.it/en/results/public-deliverables/) web site.
+Clone the app into a web server directory:
+```
+git clone https://github.com/tdm-project/tdm-weather-viewer.git
+```
+Verify the correct functioning of the app via a web browser
+
+Additional documentation is availabile in Deliverable DXXXXX on the [TDM project deliverables FIXME](http://www.tdm-project.it/en/results/public-deliverables/) web site.
 
 Acknowledgments
 ---------------
