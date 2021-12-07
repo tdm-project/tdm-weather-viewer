@@ -13,7 +13,7 @@ This software is **Copyright (C) 2021 by CRS4, Cagliari, Italy**. It is distribu
 
 Abstract
 --------
-
+![TDM Weather Viewer - Overview](img/tdm-weather-viewer.jpg)
 The **tdm-weather-viewer** is a javascript web app for rendering georeferenced raster or vector weather data that are displayed on a Leafletjs map.
 For georeferenced rasters the software extends the Leaflet Layer class to embed the GeoTIFF format.
 The raster images include various types of 2D scalar maps such as: precipitation, cloud cover, temperature, etc...
