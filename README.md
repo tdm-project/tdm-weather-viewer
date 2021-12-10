@@ -32,7 +32,7 @@ git clone https://github.com/tdm-project/tdm-weather-viewer.git
 ```
 Verify the correct functioning of the app via a web browser
 
-Additional documentation is availabile in Deliverable DXXXXX on the [TDM project deliverables FIXME](http://www.tdm-project.it/en/results/public-deliverables/) web site.
+Additional documentation is availabile in Deliverable D6.2 on the [TDM project deliverables](http://www.tdm-project.it/en/results/public-deliverables/) web site.
 
 Acknowledgments
 ---------------
@@ -43,10 +43,7 @@ projects VIGECLAB and TDM (POR FESR 2014-2020 Action 1.2.2).
 References
 ----------
 
-- Jose Díaz, Fabio Marton, and Enrico Gobbetti. Interactive Spatio-Temporal Exploration of Massive Time-Varying Rectilinear Scalar Volumes based on a Variable Bit-Rate Sparse Representation over Learned Dictionaries. Computers & Graphics, 88: 45-56, 2020. DOI: [j.cag.2020.03.002](https://doi.org/10.1016/j.cag.2020.03.002)
-
-- Fabio Marton, Marco Agus, and Enrico Gobbetti. A framework for GPU-accelerated exploration of massive time-varying rectilinear scalar volumes. Computer Graphics Forum, 38(3): 53-66, 2019. DOI: [10.1111/cgf.13671](https://doi.org/10.1111/cgf.13671)
-
-- Enrico Gobbetti, José Antonio Iglesias Guitián, and Fabio Marton. COVRA: A compression-domain output-sensitive volume rendering architecture based on a sparse representation of voxel blocks. Computer Graphics Forum, 31(3pt4): 1315-1324, 2012. DOI: [j.1467-8659.2012.03124.x](https://doi.org/10.1111/j.1467-8659.2012.03124.x)
-
+- Fabio Bettio, Giovanni Busonera, Marco Cogoni, Roberto Deidda, Mauro Del Rio, Massimo Gaggero, Enrico Gobbetti, Simone Leo, Simone Manca, Marino Marrocu, Luca Massidda, Fabio Marton, Marco Enrico Piras, Luca Pireddu, Gabriella Pusceddu, Alessandro Seoni, and Gianluigi Zanetti. TDM: un sistema aperto per l'acquisizione di dati, l'analisi e la simulazione su scala metropolitana. In Proc. GARR 2019 - Selected Papers. Pages 44-49, 2019. DOI: 10.26314/GARR-Conf19-proceedings-09.
+- 
+- Fabio Bettio, Moonisa Ahsan, Fabio Marton, and Enrico Gobbetti. A novel approach for exploring annotated data with interactive lenses. Computer Graphics Forum, 40(3): 387-398, 2021. DOI: 10.1111/cgf.14315. Proc. EUROVIS 2021.
 
