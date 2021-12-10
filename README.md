@@ -43,7 +43,7 @@ projects VIGECLAB and TDM (POR FESR 2014-2020 Action 1.2.2).
 References
 ----------
 
-- Fabio Bettio, Giovanni Busonera, Marco Cogoni, Roberto Deidda, Mauro Del Rio, Massimo Gaggero, Enrico Gobbetti, Simone Leo, Simone Manca, Marino Marrocu, Luca Massidda, Fabio Marton, Marco Enrico Piras, Luca Pireddu, Gabriella Pusceddu, Alessandro Seoni, and Gianluigi Zanetti. TDM: un sistema aperto per l'acquisizione di dati, l'analisi e la simulazione su scala metropolitana. In Proc. GARR 2019 - Selected Papers. Pages 44-49, 2019. DOI: 10.26314/GARR-Conf19-proceedings-09.
-- 
-- Fabio Bettio, Moonisa Ahsan, Fabio Marton, and Enrico Gobbetti. A novel approach for exploring annotated data with interactive lenses. Computer Graphics Forum, 40(3): 387-398, 2021. DOI: 10.1111/cgf.14315. Proc. EUROVIS 2021.
+- Fabio Bettio, Giovanni Busonera, Marco Cogoni, Roberto Deidda, Mauro Del Rio, Massimo Gaggero, Enrico Gobbetti, Simone Leo, Simone Manca, Marino Marrocu, Luca Massidda, Fabio Marton, Marco Enrico Piras, Luca Pireddu, Gabriella Pusceddu, Alessandro Seoni, and Gianluigi Zanetti. TDM: un sistema aperto per l'acquisizione di dati, l'analisi e la simulazione su scala metropolitana. In Proc. GARR 2019 - Selected Papers. Pages 44-49, 2019. DOI: https://doi.org/10.26314/GARR-Conf19-proceedings-09.
+
+- Fabio Bettio, Moonisa Ahsan, Fabio Marton, and Enrico Gobbetti. A novel approach for exploring annotated data with interactive lenses. Computer Graphics Forum, 40(3): 387-398, 2021. DOI: https://doi.org/10.1111/cgf.14315. Proc. EUROVIS 2021.
 
